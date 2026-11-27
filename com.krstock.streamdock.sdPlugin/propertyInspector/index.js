@@ -207,7 +207,7 @@ async function searchStocksDirect(query) {
   const [acRes, etfRes] = await Promise.allSettled([
     fetchByDataSource(
       `/search?q=${encodeURIComponent(q)}`,
-      `https://ac.stock.naver.com/ac?q=${encodeURIComponent(q)}&target=stock`
+      `https://ac.stock.naver.com/ac?q=${encodeURIComponent(q)}&target=stock,etf,index`
     ).then((r) => r.data),
     loadEtfList(),
   ]);
