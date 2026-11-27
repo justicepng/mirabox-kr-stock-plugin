@@ -1,0 +1,9 @@
+{
+  "Name": "KR/Global Stock & Macro",
+  "Description": "Displays realtime Korean & Global stock, index, futures, and macro quotes.",
+  "Category": "KR Stock",
+  "com.antigravity.krstock.ticker": {
+    "Name": "KR/Global Stock & Macro",
+    "Tooltip": "Display realtime stock/index/futures/macro quotes on buttons or 293S side screen"
+  }
+}

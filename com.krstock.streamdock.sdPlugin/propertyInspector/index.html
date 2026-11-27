@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>국내/해외 주식·매크로</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #2d2d2d;
+      color: #d8d8d8;
+      font-size: 12px;
+      padding: 10px 14px;
+      user-select: none;
+    }
+    .sdpi-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sdpi-heading {
+      font-size: 12px;
+      font-weight: 700;
+      color: #9a9a9a;
+      border-bottom: 1px solid #3c3c3c;
+      padding-bottom: 6px;
+      margin-bottom: 2px;
+    }
+    .sdpi-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+    }
+    .sdpi-item-label {
+      width: 92px;
+      flex-shrink: 0;
+      text-align: right;
+      color: #b8b8b8;
+      font-size: 11.5px;
+    }
+    .sdpi-item-value {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    input[type="text"], select {
+      width: 100%;
+      height: 26px;
+      background-color: #3a3a3a;
+      border: 1px solid #4d4d4d;
+      border-radius: 4px;
+      color: #efefef;
+      padding: 0 8px;
+      font-size: 12px;
+      outline: none;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: #03c75a;
+    }
+    button {
+      height: 26px;
+      padding: 0 10px;
+      background-color: #3f3f3f;
+      border: 1px solid #555555;
+      border-radius: 4px;
+      color: #efefef;
+      font-size: 11.5px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    button:hover {
+      background-color: #4b4b4b;
+    }
+    button.primary {
+      background-color: #03c75a;
+      border-color: #02b350;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    button.primary:hover {
+      background-color: #02b350;
+    }
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    input[type="checkbox"] {
+      accent-color: #03c75a;
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-left: 100px;
+      margin-top: 2px;
+    }
+    .btn-row button {
+      flex: 1;
+    }
+    .status-text {
+      margin-left: 100px;
+      font-size: 11px;
+      color: #9a9a9a;
+      min-height: 16px;
+      line-height: 1.4;
+      word-break: break-all;
+    }
+    .status-text.ok {
+      color: #4ade80;
+    }
+    .status-text.error {
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+  <div class="sdpi-wrapper" id="main">
+    <div class="sdpi-heading">국내/해외 주식·매크로 (로컬 실시간) v1.3.0</div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">종목 검색</div>
+      <div class="sdpi-item-value">
+        <input type="text" id="searchInput" placeholder="예: 삼성전자, 나스닥, WTI, 금, 국채, 매크로" />
+        <button id="searchBtn" class="primary">검색</button>
+      </div>
+    </div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">검색 결과</div>
+      <div class="sdpi-item-value">
+        <select id="searchResults">
+          <option value="">검색 후 종목을 선택하세요</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">종목 코드</div>
+      <div class="sdpi-item-value">
+        <input type="text" id="stockCode" placeholder="005930, CL=F, GC=F, ^TNX, NQcv1 등" maxlength="16" />
+        <button id="applyCodeBtn">적용</button>
+      </div>
+    </div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">새로고침</div>
+      <div class="sdpi-item-value">
+        <select id="refreshInterval">
+          <option value="10">10초마다 (기본)</option>
+          <option value="30">30초마다</option>
+          <option value="60">1분마다</option>
+          <option value="300">5분마다</option>
+          <option value="0">수동 (자동 갱신 안 함)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">클릭 시 화면</div>
+      <div class="sdpi-item-value">
+        <select id="urlMode">
+          <option value="naverPay">네이버페이 증권 (stock.naver.com)</option>
+          <option value="naverPayMobile">네이버페이 증권 모바일</option>
+          <option value="naverFinance">네이버 금융 구버전 (finance.naver.com)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="sdpi-item">
+      <div class="sdpi-item-label">표시 옵션</div>
+      <div class="sdpi-item-value">
+        <label class="checkbox-wrap">
+          <input type="checkbox" id="showExchange" checked />
+          <span>시장 구분(KOSPI/OIL/METALS/BOND 등) 표시</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="refreshBtn">즉시 새로고침 / 진단</button>
+      <button id="openUrlBtn">네이버페이 증권 열기</button>
+    </div>
+
+    <div id="statusText" class="status-text"></div>
+  </div>
+
+  <script src="index.js"></script>
+</body>
+</html>

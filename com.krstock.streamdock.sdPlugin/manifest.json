@@ -1,0 +1,50 @@
+{
+  "Actions": [
+    {
+      "Icon": "static/img/icon.png",
+      "Name": "KR/Global Stock & Macro",
+      "States": [
+        {
+          "TitleAlignment": "bottom",
+          "FontFamily": "Malgun Gothic",
+          "Image": "static/img/default.png"
+        }
+      ],
+      "Controllers": [
+        "Keypad",
+        "Information",
+        "SecondaryScreen"
+      ],
+      "UserTitleEnabled": false,
+      "SupportedInMultiActions": false,
+      "Tooltip": "Display realtime Korean & Global stock/index/futures/macro quotes on Keypad & 293S Right Screen",
+      "UUID": "com.antigravity.krstock.ticker",
+      "PropertyInspectorPath": "propertyInspector/index.html",
+      "KeyboardSupport": false
+    }
+  ],
+  "PUUID": "com.antigravity.krstock",
+  "SDKVersion": 1,
+  "Author": "Antigravity",
+  "Name": "KR/Global Stock & Macro",
+  "Icon": "static/img/cate.png",
+  "CodePath": "plugin/index.html",
+  "Description": "Displays realtime Korean & Global stock, index, futures, and macro quotes via local relay on Mirabox Stream Dock (Keypad & 293S Right Screen).",
+  "Category": "KR Stock",
+  "CategoryIcon": "static/img/cate.png",
+  "Version": "1.3.0",
+  "URL": "https://stock.naver.com/",
+  "OS": [
+    {
+      "Platform": "mac",
+      "MinimumVersion": "10.11"
+    },
+    {
+      "Platform": "windows",
+      "MinimumVersion": "7"
+    }
+  ],
+  "Software": {
+    "MinimumVersion": "2.9"
+  }
+}
