@@ -9,6 +9,7 @@ const DEFAULT_SETTINGS = {
   stockName: "삼성전자",
   refreshInterval: 10,
   urlMode: "naverPay",
+  dataSource: "auto",
   showExchange: true,
 };
 
@@ -62,6 +63,7 @@ const els = {
   searchResults: document.getElementById("searchResults"),
   stockCode: document.getElementById("stockCode"),
   applyCodeBtn: document.getElementById("applyCodeBtn"),
+  dataSource: document.getElementById("dataSource"),
   refreshInterval: document.getElementById("refreshInterval"),
   urlMode: document.getElementById("urlMode"),
   showExchange: document.getElementById("showExchange"),
@@ -86,12 +88,30 @@ async function fetchJsonWithTimeout(url, timeoutMs = 4500) {
   }
 }
 
+async function fetchByDataSource(relayPath, directUrl) {
+  const mode = $settings.dataSource || "auto";
+  if (mode === "direct") {
+    return { data: await fetchJsonWithTimeout(directUrl, 4500), viaMode: "직접 API" };
+  }
+  if (mode === "relay") {
+    return { data: await fetchJsonWithTimeout(`${LOCAL_RELAY_BASE}${relayPath}`, 4500), viaMode: "로컬 릴레이" };
+  }
+  try {
+    return { data: await fetchJsonWithTimeout(`${LOCAL_RELAY_BASE}${relayPath}`, 1800), viaMode: "로컬 릴레이" };
+  } catch {
+    return { data: await fetchJsonWithTimeout(directUrl, 4500), viaMode: "직접 API" };
+  }
+}
+
 async function loadEtfList() {
   if (Array.isArray(cachedEtfList) && cachedEtfList.length > 0) {
     return cachedEtfList;
   }
   try {
-    const data = await fetchJsonWithTimeout(`${LOCAL_RELAY_BASE}/etf`, 5000);
+    const { data } = await fetchByDataSource(
+      "/etf",
+      "https://finance.naver.com/api/sise/etfItemList.nhn"
+    );
     const raw = data?.result?.etfItemList;
     if (Array.isArray(raw) && raw.length > 0) {
       cachedEtfList = raw
@@ -183,9 +203,12 @@ async function searchStocksDirect(query) {
     }
   }
 
-  // 2) 로컬 릴레이로 국내 주식 자동완성 + 전체 ETF 목록 병렬 조회
+  // 2) 선택된 데이터 소스로 국내 주식 자동완성 + 전체 ETF 목록 병렬 조회
   const [acRes, etfRes] = await Promise.allSettled([
-    fetchJsonWithTimeout(`${LOCAL_RELAY_BASE}/search?q=${encodeURIComponent(q)}`, 4500),
+    fetchByDataSource(
+      `/search?q=${encodeURIComponent(q)}`,
+      `https://ac.stock.naver.com/ac?q=${encodeURIComponent(q)}&target=stock`
+    ).then((r) => r.data),
     loadEtfList(),
   ]);
 
@@ -340,6 +363,7 @@ async function performSearch() {
 
 function syncUiFromSettings() {
   els.stockCode.value = $settings.stockCode || "005930";
+  els.dataSource.value = $settings.dataSource || "auto";
   els.refreshInterval.value = String(
     $settings.refreshInterval !== undefined ? $settings.refreshInterval : 10
   );
@@ -374,6 +398,12 @@ els.applyCodeBtn.addEventListener("click", () => {
 
 els.stockCode.addEventListener("keydown", (e) => {
   if (e.key === "Enter") els.applyCodeBtn.click();
+});
+
+els.dataSource.addEventListener("change", () => {
+  saveSettings({ dataSource: els.dataSource.value });
+  const label = els.dataSource.options[els.dataSource.selectedIndex]?.text || els.dataSource.value;
+  setStatus(`데이터 소스 변경: ${label}`, "ok");
 });
 
 els.refreshInterval.addEventListener("change", () => {

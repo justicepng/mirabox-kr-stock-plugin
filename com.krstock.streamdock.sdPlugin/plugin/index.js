@@ -14,6 +14,7 @@ const DEFAULT_SETTINGS = {
   stockName: "삼성전자",
   refreshInterval: 10,
   urlMode: "naverPay",
+  dataSource: "auto", // "auto" | "direct" | "relay"
   showExchange: true,
 };
 
@@ -262,21 +263,102 @@ function normalizeQuote(raw, code) {
   };
 }
 
-async function fetchRealtimeQuote(code) {
+async function fetchDirectQuote(code) {
+  const cleanCode = (code || "").trim();
+  const upper = cleanCode.toUpperCase();
+  const ts = Date.now();
+
+  if (isDomesticIndex(upper)) {
+    const raw = await fetchJsonWithTimeout(
+      `https://polling.finance.naver.com/api/realtime/domestic/index/${encodeURIComponent(upper)}?_t=${ts}`,
+      4500
+    );
+    const normalized = normalizeQuote(raw, cleanCode);
+    if (normalized) return { data: normalized, source: "직접 API" };
+    throw new Error("지수 직접 조회 응답 오류");
+  }
+
+  const gMeta = getGlobalMeta(upper);
+  if (gMeta || !(/^[0-9A-Za-z]{6}$/.test(cleanCode) && /\d/.test(cleanCode))) {
+    const yahooMap = {
+      NQCV1: "NQ=F",
+      ESCV1: "ES=F",
+      YMCV1: "YM=F",
+      RTYCV1: "RTY=F",
+      ".INX": "^GSPC",
+      ".IXIC": "^IXIC",
+      ".NDX": "^NDX",
+      ".DJI": "^DJI",
+      ".SOX": "^SOX",
+      FX_USDKRW: "KRW=X",
+      USDKRW: "KRW=X",
+      DXY: "DX-Y.NYB",
+      USDX: "DX-Y.NYB",
+      USDJPY: "JPY=X",
+      EURUSD: "EURUSD=X",
+      CLCV1: "CL=F",
+      WTI: "CL=F",
+      LCOCV1: "BZ=F",
+      BRENT: "BZ=F",
+      NGCV1: "NG=F",
+      GCCV1: "GC=F",
+      GOLD: "GC=F",
+      SICV1: "SI=F",
+      SILVER: "SI=F",
+      HGCV1: "HG=F",
+      COPPER: "HG=F",
+      US10Y: "^TNX",
+      TNX: "^TNX",
+      US30Y: "^TYX",
+      TYX: "^TYX",
+      VIX: "^VIX",
+      BTC: "BTC-USD",
+    };
+    const yahooSym = yahooMap[upper] || upper;
+    const raw = await fetchJsonWithTimeout(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1d&range=1d&_t=${ts}`,
+      4500
+    );
+    const normalized = normalizeQuote(raw, cleanCode);
+    if (normalized) return { data: normalized, source: "직접 API" };
+    throw new Error("해외/매크로 직접 조회 응답 오류");
+  }
+
+  const raw = await fetchJsonWithTimeout(
+    `https://m.stock.naver.com/api/stock/${encodeURIComponent(cleanCode)}/basic?_t=${ts}`,
+    4500
+  );
+  const normalized = normalizeQuote(raw, cleanCode);
+  if (normalized) return { data: normalized, source: "직접 API" };
+  throw new Error("국내 주식 직접 조회 응답 오류");
+}
+
+async function fetchRealtimeQuote(code, dataSource = "auto") {
   const cleanCode = (code || "").trim();
   if (!cleanCode) {
     throw new Error("종목 코드가 비어 있습니다.");
   }
 
+  if (dataSource === "direct") {
+    return await fetchDirectQuote(cleanCode);
+  }
+
   const ts = Date.now();
   const relayUrl = `${LOCAL_RELAY_BASE}/quote?code=${encodeURIComponent(cleanCode)}&_t=${ts}`;
-  const raw = await fetchJsonWithTimeout(relayUrl, 5000);
-  const normalized = normalizeQuote(raw, cleanCode);
-  if (normalized) {
-    return { data: normalized, source: "로컬 실시간" };
+  try {
+    const raw = await fetchJsonWithTimeout(relayUrl, dataSource === "relay" ? 5000 : 2000);
+    const normalized = normalizeQuote(raw, cleanCode);
+    if (normalized) {
+      return { data: normalized, source: "로컬 릴레이" };
+    }
+    const keys = raw && typeof raw === "object" ? Object.keys(raw).slice(0, 5).join(",") : "empty";
+    throw new Error(`응답 형식 불일치 (${keys})`);
+  } catch (relayErr) {
+    if (dataSource === "relay") {
+      throw relayErr;
+    }
+    return await fetchDirectQuote(cleanCode);
   }
-  const keys = raw && typeof raw === "object" ? Object.keys(raw).slice(0, 5).join(",") : "empty";
-  throw new Error(`응답 형식 불일치 (${keys})`);
 }
 
 // --- Canvas Key Renderer (144x144) : 전일대비 & 등락률 메인 ---
@@ -447,7 +529,7 @@ async function updateContextStock(context, notifyPi = false, force = false) {
   const code = state.settings.stockCode || DEFAULT_SETTINGS.stockCode;
 
   try {
-    const { data, source } = await fetchRealtimeQuote(code);
+    const { data, source } = await fetchRealtimeQuote(code, state.settings.dataSource || "auto");
     if (seq !== state.reqSeq) return;
 
     state.lastData = data;
