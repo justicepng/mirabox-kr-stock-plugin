@@ -1,10 +1,9 @@
 @echo off
-chcp 65001 > nul
-echo Mirabox Stream Dock 국내 주식 플러그인을 설치합니다...
+echo Installing Mirabox Stream Dock KR/Global Stock Plugin...
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install.ps1"
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [오류] 설치 중 문제가 발생했습니다.
+    echo [ERROR] Installation failed.
     pause
     exit /b %ERRORLEVEL%
 )
